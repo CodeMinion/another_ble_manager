@@ -32,14 +32,14 @@ abstract class IBleInitCommand {
 
 /// Init command to be performed on a device during the configuration
 /// state.
-class EnableCharacteristicCommand implements IBleInitCommand {
+class EnableCharacteristicNotificationCommand implements IBleInitCommand {
   final String serviceUuid;
   final String charUuid;
 
-  const EnableCharacteristicCommand({required this.serviceUuid, required this.charUuid});
+  const EnableCharacteristicNotificationCommand({required this.serviceUuid, required this.charUuid});
   @override
   Future<void> execute({required IBleDevice device}) async {
-    await device.enableCharacteristicIndicate(serviceUuid: serviceUuid, charUuid: charUuid);
+    await device.enableCharacteristicNotify(serviceUuid: serviceUuid, charUuid: charUuid);
   }
 
   @override
@@ -261,7 +261,15 @@ class BleConfigureState implements FsmState {
     List<IBleInitCommand> initCommands = deviceOwner.getInitCommands();
     for (IBleInitCommand command in initCommands) {
       // Execute configuration step
-      await command.execute(device: deviceOwner.device);
+      try {
+        await command.execute(device: deviceOwner.device);
+      }
+      on Exception {
+        // Todo Handle error.
+      }
+      on Error {
+        // Handle error
+      }
     }
     // If no more configuration steps available go to ready state.
     owner.getFsm()?.handleEvent(
@@ -451,8 +459,16 @@ class BleDeviceDisconnectingState implements FsmState {
     // Grab configuration step
     List<IBleInitCommand> initCommands = deviceOwner.getInitCommands();
     for (IBleInitCommand command in initCommands) {
-      // Undo configuration step
-      await command.undo(device: deviceOwner.device);
+      try {
+        // Undo configuration step
+        await command.undo(device: deviceOwner.device);
+      }
+      on Exception {
+        // Todo handle error
+      }
+      on Error {
+        // Handle error
+      }
     }
     await deviceOwner.device
         .disconnect(); /*.then((value) => deviceOwner.handleEvent(
