@@ -41,9 +41,9 @@ class MockBleCharacteristic implements IBluetoothGattCharacteristic {
 class MockBleService implements IBluetoothGattService {
   final MockBleDevice _device;
   final HashMap<String, IBluetoothGattCharacteristic> _characteristics;
-  final uuid;
+  final String uuid;
 
-  MockBleService._({required MockBleDevice device, this.uuid})
+  MockBleService._({required MockBleDevice device, required this.uuid})
       : _device = device,
         _characteristics = HashMap() {
     // Load each characteristic
@@ -100,7 +100,6 @@ class MockBleDevice implements IBleDevice {
       {Duration duration = const Duration(seconds: 2),
       bool autoConnect = false}) async {
     await Future.delayed(const Duration(seconds: 2)).then((value) {
-      print("Calling connection listener: $_bleDeviceConnectionStateChangeListener");
       _bleDeviceConnectionStateChangeListener?.onDeviceConnectionStateChanged(
           device: this, newGattState: BleConnectionState.connected);
     });
@@ -266,6 +265,7 @@ class MockBleAdapter implements IBleAdapter {
 
     var resultList = [
       MockBleDevice(device: "MockBle ${_generateRandomOctets()}"),
+      MockBleDevice(device: "GoDice ${_generateRandomOctets()}"),
       MockBleDevice(device: "Kinsect ${_generateRandomOctets()}"),
       MockBleDevice(device: "Slinger ${_generateRandomOctets()}"),
       MockBleDevice(device: "Scoutfly ${_generateRandomOctets()}"),
@@ -285,7 +285,6 @@ class MockBleAdapter implements IBleAdapter {
           return device;
         }
       }).toList()
-
     );
   }
 

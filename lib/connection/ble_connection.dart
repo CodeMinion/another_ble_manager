@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:another_fsm/another_fsm.dart';
+import 'package:flutter/foundation.dart';
 
 import '../another_ble_manager.dart';
-import 'ble_connection_event.dart';
 
 enum BleSetupState {
   unknown,
@@ -111,6 +111,7 @@ class BleDeviceOwner
       required IBluetoothGattService service,
       required IBluetoothGattCharacteristic characteristic,
       required Uint8List value}) {
+    debugPrintSynchronously ("Got char changed, notifying");
     BleCharacteristicChangedEvent event = BleCharacteristicChangedEvent(
         device: device,
         serviceUuid: service.getUuid(),
@@ -131,23 +132,26 @@ class BleDeviceOwner
 class BleInitialState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    // Do nothing
-    print("OnEnter: BleInitialState");
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    // Do nothing
+    debugPrintSynchronously("OnEnter: BleInitialState ${deviceOwner.device.getId()}");
     deviceOwner._notifyState(state: BleSetupState.initial);
   }
 
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleInitialState - Event $event}");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleInitialState ${deviceOwner.device.getId()} - Event $event}");
 
     if (event is BleConnectDeviceEvent) {
-      await owner.getFsm()?.changeState(nextState: BleConnectDeviceState());
+      //await owner.getFsm()?.changeState(nextState: BleConnectDeviceState());
+      owner.getFsm()?.changeState(nextState: BleConnectDeviceState());
       return true;
     } else if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.connected) {
-        await owner
+        //await owner
+        owner
             .getFsm()
             ?.changeState(nextState: BleDiscoverServicesState());
         return true;
@@ -159,7 +163,8 @@ class BleInitialState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // Do nothing.
-    print("OnExit: BleInitialState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleInitialState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -172,8 +177,8 @@ class BleInitialState implements FsmState {
 class BleConnectDeviceState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleConnectDeviceState");
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleConnectDeviceState ${deviceOwner.device.getId()}");
     deviceOwner._notifyState(state: BleSetupState.connecting);
 
     await deviceOwner.device.connect();
@@ -182,12 +187,14 @@ class BleConnectDeviceState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleConnectDeviceState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleConnectDeviceState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.connected) {
         // Transition to the discovery state.
-        await owner
+        //await owner
+        owner
             .getFsm()
             ?.changeState(nextState: BleDiscoverServicesState());
       }
@@ -200,7 +207,8 @@ class BleConnectDeviceState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // Do nothing.
-    print("OnExit: BleConnectDeviceState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleConnectDeviceState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -214,9 +222,9 @@ class BleConnectDeviceState implements FsmState {
 class BleDiscoverServicesState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleDiscoverServicesState");
-
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleDiscoverServicesState ${deviceOwner.device.getId()}");
+
     deviceOwner._notifyState(state: BleSetupState.discoveringServices);
 
     await deviceOwner.device.discoverServices();
@@ -227,11 +235,13 @@ class BleDiscoverServicesState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleDiscoverServicesState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleDiscoverServicesState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleServiceDiscoveredEvent) {
       // Transition to Device config.
-      await owner.getFsm()?.changeState(nextState: BleConfigureState());
+      //await owner.getFsm()?.changeState(nextState: BleConfigureState());
+      owner.getFsm()?.changeState(nextState: BleConfigureState());
       return true;
     }
     return false;
@@ -240,7 +250,8 @@ class BleDiscoverServicesState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // Do nothing
-    print("OnExit: BleDiscoverServicesState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleDiscoverServicesState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -252,9 +263,9 @@ class BleDiscoverServicesState implements FsmState {
 class BleConfigureState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleConfigureState");
-
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleConfigureState ${deviceOwner.device.getId()}");
+
     deviceOwner._notifyState(state: BleSetupState.configuring);
 
     // Grab configuration step
@@ -279,10 +290,12 @@ class BleConfigureState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleConfigureState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleConfigureState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleDeviceConfigurationCompleteEvent) {
-      await owner.getFsm()?.changeState(nextState: BleDeviceReadyState());
+      //await owner.getFsm()?.changeState(nextState: BleDeviceReadyState());
+      owner.getFsm()?.changeState(nextState: BleDeviceReadyState());
       return true;
     }
     return false;
@@ -291,7 +304,8 @@ class BleConfigureState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // Do nothing
-    print("OnExit: BleConfigureState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleConfigureState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -306,7 +320,7 @@ class BleDeviceReadyState implements FsmState {
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
     deviceOwner._notifyState(state: BleSetupState.ready);
 
-    print("OnEnter: BleDeviceReadyState");
+    debugPrintSynchronously("OnEnter: BleDeviceReadyState ${deviceOwner.device.getId()}");
     deviceOwner.device
         .setOnDeviceConnectionsStateChangeListener(listener: deviceOwner);
   }
@@ -314,7 +328,8 @@ class BleDeviceReadyState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleDeviceReadyState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleDeviceReadyState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.disconnected) {
@@ -327,28 +342,30 @@ class BleDeviceReadyState implements FsmState {
     }
 
     if (event is BleWriteCharacteristicEvent) {
-      BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
-      await deviceOwner.device.writeCharacteristic(
+      //await deviceOwner.device.writeCharacteristic(
+      deviceOwner.device.writeCharacteristic(
           serviceUuid: event.serviceUuid,
           charUuid: event.charUuid,
           value: event.value);
+      return true;
     }
     if (event is BleDisconnectDeviceEvent) {
       // Transition to disconnecting state to handle user request to disconnect.
-      await owner
+      //await owner
+      owner
           .getFsm()
           ?.changeState(nextState: BleDeviceDisconnectingState());
       return true;
     }
     else if (event is BleEnableCharacteristicNotifyEvent) {
-      BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
-      await deviceOwner.device.enableCharacteristicIndicate(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
+      //await deviceOwner.device.enableCharacteristicIndicate(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
+      deviceOwner.device.enableCharacteristicIndicate(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
       return true;
     }
 
     else if (event is BleDisableCharacteristicNotifyEvent) {
-      BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
-      await deviceOwner.device.disableCharacteristicNotify(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
+      //await deviceOwner.device.disableCharacteristicNotify(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
+      deviceOwner.device.disableCharacteristicNotify(serviceUuid: event.serviceUuid, charUuid: event.charUuid);
     }
 
     return false;
@@ -357,7 +374,8 @@ class BleDeviceReadyState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // Do nothing.
-    print("OnExit: BleDeviceReadyState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleDeviceReadyState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -369,9 +387,9 @@ class BleDeviceReadyState implements FsmState {
 class BleDeviceDisconnectedState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleDeviceDisconnectedState");
-
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleDeviceDisconnectedState ${deviceOwner.device.getId()}");
+
     // TODO Consider using a flag for signaling auto reconnect on the owner.
     // For now attempt reconnect logic.
     deviceOwner._notifyState(state: BleSetupState.reconnecting);
@@ -381,12 +399,14 @@ class BleDeviceDisconnectedState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleDeviceDisconnectedState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleDeviceDisconnectedState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.connected) {
         // Transition to the discovery state.
-        await owner
+        //await owner
+        owner
             .getFsm()
             ?.changeState(nextState: BleDiscoverServicesState());
       }
@@ -399,7 +419,8 @@ class BleDeviceDisconnectedState implements FsmState {
   @override
   Future<void> onExit({required FsmOwner owner}) async {
     // TODO Cleanup reconnect logic if any.
-    print("OnExit: BleDeviceDisconnectedState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleDeviceDisconnectedState ${deviceOwner.device.getId()}");
   }
 
   @override
@@ -411,9 +432,9 @@ class BleDeviceDisconnectedState implements FsmState {
 class BleDeviceReconnectingState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleDeviceReconnectingState");
-
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleDeviceReconnectingState ${deviceOwner.device.getId()}");
+
     // Attempt reconnect logic.
     deviceOwner._notifyState(state: BleSetupState.reconnecting);
     deviceOwner.device.reconnect();
@@ -422,12 +443,14 @@ class BleDeviceReconnectingState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEvent: BleDeviceReconnectingState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEvent: BleDeviceReconnectingState ${deviceOwner.device.getId()}- Event $event");
 
     if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.connected) {
         // Transition to the discovery state.
-        await owner
+        //await owner
+        owner
             .getFsm()
             ?.changeState(nextState: BleDiscoverServicesState());
       }
@@ -443,7 +466,8 @@ class BleDeviceReconnectingState implements FsmState {
 
   @override
   Future<void> onExit({required FsmOwner owner}) async {
-    print("OnExit: BleDeviceReconnectingState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleDeviceReconnectingState ${deviceOwner.device.getId()}");
   }
 }
 
@@ -451,10 +475,10 @@ class BleDeviceReconnectingState implements FsmState {
 class BleDeviceDisconnectingState implements FsmState {
   @override
   Future<void> onEnter({required FsmOwner owner}) async {
-    print("OnEnter: BleDeviceDisconnectingState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleDeviceDisconnectingState ${deviceOwner.device.getId()}");
 
     // Attempt reconnect logic.
-    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
     deviceOwner._notifyState(state: BleSetupState.disconnecting);
     // Grab configuration step
     List<IBleInitCommand> initCommands = deviceOwner.getInitCommands();
@@ -480,14 +504,15 @@ class BleDeviceDisconnectingState implements FsmState {
   @override
   Future<bool> onEvent(
       {required FsmEvent event, required FsmOwner owner}) async {
-    print("OnEnter: BleDeviceDisconnectingState - Event $event");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnEnter: BleDeviceDisconnectingState ${deviceOwner.device.getId()} - Event $event");
 
     if (event is BleDeviceConnectionStateChangedEvent) {
       if (event.newState == BleConnectionState.disconnected) {
-        BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
         deviceOwner._notifyState(state: BleSetupState.disconnected);
         // Transition to initial state to be able to connect once again on user request.
-        await owner.getFsm()?.changeState(nextState: BleInitialState());
+        //await owner.getFsm()?.changeState(nextState: BleInitialState());
+        owner.getFsm()?.changeState(nextState: BleInitialState());
       }
       return true;
     }
@@ -497,7 +522,8 @@ class BleDeviceDisconnectingState implements FsmState {
 
   @override
   Future<void> onExit({required FsmOwner owner}) async {
-    print("OnExit: BleDeviceDisconnectingState");
+    BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
+    debugPrintSynchronously("OnExit: BleDeviceDisconnectingState ${deviceOwner.device.getId()}");
   }
 
   @override
