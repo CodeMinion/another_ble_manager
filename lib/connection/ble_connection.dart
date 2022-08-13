@@ -25,6 +25,9 @@ enum BleSetupState {
 abstract class IBleInitCommand {
   // Performs the command on the specified device.
   Future<void> execute({required IBleDevice device});
+
+  // Undo this initialization command.
+  Future<void> undo({required IBleDevice device});
 }
 
 /// Init command to be performed on a device during the configuration
@@ -37,6 +40,11 @@ class EnableCharacteristicCommand implements IBleInitCommand {
   @override
   Future<void> execute({required IBleDevice device}) async {
     await device.enableCharacteristicIndicate(serviceUuid: serviceUuid, charUuid: charUuid);
+  }
+
+  @override
+  Future<void> undo({required IBleDevice device}) async {
+    await device.disableCharacteristicNotify(serviceUuid: serviceUuid, charUuid: charUuid);
   }
 
 }
@@ -253,7 +261,7 @@ class BleConfigureState implements FsmState {
     List<IBleInitCommand> initCommands = deviceOwner.getInitCommands();
     for (IBleInitCommand command in initCommands) {
       // Execute configuration step
-      command.execute(device: deviceOwner.device);
+      await command.execute(device: deviceOwner.device);
     }
     // If no more configuration steps available go to ready state.
     owner.getFsm()?.handleEvent(
@@ -440,7 +448,13 @@ class BleDeviceDisconnectingState implements FsmState {
     // Attempt reconnect logic.
     BleDeviceOwner deviceOwner = owner as BleDeviceOwner;
     deviceOwner._notifyState(state: BleSetupState.disconnecting);
-    deviceOwner.device
+    // Grab configuration step
+    List<IBleInitCommand> initCommands = deviceOwner.getInitCommands();
+    for (IBleInitCommand command in initCommands) {
+      // Undo configuration step
+      await command.undo(device: deviceOwner.device);
+    }
+    await deviceOwner.device
         .disconnect(); /*.then((value) => deviceOwner.handleEvent(
         event: BleDeviceConnectionStateChangedEvent(
             device: deviceOwner.device,
