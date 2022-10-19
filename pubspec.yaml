@@ -1,7 +1,7 @@
 name: another_ble_manager
 description: Flutter package for managing BLE connections states and devices.
 version: 0.0.1
-homepage:
+homepage: https://github.com/CodeMinion/another_ble_manager
 
 environment:
   sdk: ">=2.17.6 <3.0.0"
@@ -11,8 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  another_fsm:
-    path: ../another_fsm
+  another_fsm: ^0.0.1
+  #another_fsm:
+  #  path: ../another_fsm
 
 dev_dependencies:
   flutter_test:
